@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Gradle: de.mkammerer:argon2-jvm:2.4">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/Cannot resolve external dependency de.mkammerer:argon2-jvm:2.4 because no repositories are defined." />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
