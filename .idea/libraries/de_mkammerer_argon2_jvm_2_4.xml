@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="de.mkammerer:argon2-jvm:2.4" type="repository">
+    <properties maven-id="de.mkammerer:argon2-jvm:2.4" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/argon2-jvm-2.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/jna-4.5.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

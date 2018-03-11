@@ -2,24 +2,26 @@ package GPS;
 
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
-import de.mkammerer.argon2.Argon2Helper;
 
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
 import java.io.*;
-import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Server {
     private static final int memory = 3000;
     private static final int threads = 5;
-    private static final long maxMillis = 250;
+    private static final int iterations = 30;
 
     private static final int port = 3000;
 
     private ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
     private TransactionHandler dbHandler;
-    private Argon2 argon2 = Argon2Factory.create();
+    private Argon2 argon2 = Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id);
 
 
 
@@ -35,11 +37,21 @@ public class Server {
         dbHandler = new TransactionHandler();
         System.out.println("Listening on port: " + port);
 
+        Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
+
+        System.setProperty("javax.net.ssl.keyStore", "jake.store");
+        System.setProperty("javax.net.ssl.keyStorePassword", "c29tZXNhbHQ$sQzx9miPfXJ8JwVzh1urZX4FoLbuOolcJ+HPYl7pH7s");
+        //System.setProperty("javax.net.debug","all");
+
         try {
-            ServerSocket ssock = new ServerSocket(port);
+            SSLServerSocketFactory sslServerSocketfactory = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
+            SSLServerSocket ssock = (SSLServerSocket) sslServerSocketfactory.createServerSocket(port);
+
+
+            //ServerSocket ssock = new ServerSocket(port);
 
             while (clientHandlers.size() < 1000) {
-                Socket client = ssock.accept();
+                SSLSocket client = (SSLSocket) ssock.accept();
                 System.out.println("Connection established with: " + client.getRemoteSocketAddress());
                 ClientHandler cl = new ClientHandler(client, dbHandler);
                 cl.start();
@@ -50,11 +62,13 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
 
+    public void removeUser(ClientHandler clientHandler) {
+        clientHandlers.remove(clientHandler);
     }
 
     private class ClientHandler extends Thread {
-        PrintWriter fileWriter;
         BufferedReader in;
         BufferedWriter out;
         Socket client;
@@ -106,17 +120,18 @@ public class Server {
                     case "login":
                         if (validLogin(input[1], input[2])) {
                             clientId = input[1];
+                            System.out.println("WELCOME " + clientId + input[1]);
                             out.write("welcome true\n");
                             out.flush();
                         } else {
+                            System.out.println("NOT WELCOME");
                             out.write("welcome false\n");
                             shutdown();
                         }
                         break;
                     case "location":
-                        if (input[1].equals(clientId)) {
-                            dbHandler.addNewLocation(clientId, input[2], input[3], input[4]);
-                        }
+                        System.out.println("We good. " + input[1] + " = " + clientId);
+                        dbHandler.addNewLocation(input[1], input[2], input[3], input[4]);
                         break;
                     case "exit":
                         shutdown();
@@ -126,27 +141,27 @@ public class Server {
             }
         }
 
-        public void shutdown() {
+        private void shutdown() {
             try {
-                fileWriter.close();
-                client.shutdownInput();
-                client.shutdownOutput();
+                in.close();
+                out.close();
                 client.close();
+                removeUser(this);
             } catch (IOException e) {
                 System.out.println("Couldn't close connection...");
             }
         }
 
         private boolean validLogin(String id, String password) {
-            return getHash(password).equals(dbHandler.getHash(id));
+            return argon2.verify(dbHandler.getHash(id), password);
         }
 
     }
 
 
     public String getHash(String password) {
-        System.out.println("Optimal iterations: " + Argon2Helper.findIterations(argon2, maxMillis, memory, threads));
-        String hash = argon2.hash(Argon2Helper.findIterations(argon2, maxMillis, memory, threads), memory, threads, password.toCharArray());
+        String hash = argon2.hash(iterations, memory, threads, password.toCharArray());
+        System.out.println("Hash: " + hash);
         argon2.wipeArray(password.toCharArray());
         return hash;
     }

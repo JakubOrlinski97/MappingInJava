@@ -1,12 +1,13 @@
 package GPS;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
 public class ServerTUI extends Thread {
     Scanner sc;
-    List<String> commands = Arrays.asList("deploy", "add", "remove", "connected");
+    List<String> commands = Arrays.asList("deploy", "add", "remove", "connected", "users", "location");
     Server server;
 
     public ServerTUI(Server server) {
@@ -16,14 +17,13 @@ public class ServerTUI extends Thread {
 
     @Override
     public void run() {
-        String  input = sc.nextLine();
-        while (input != null) {
-
+        System.out.println("What would you like to do? " + commands.toString());
+        while (sc.hasNext()) {
+            String input = sc.nextLine();
             if (commands.contains(input.split(" ")[0])) {
                 handleInput(input);
             }
-
-            input = sc.nextLine();
+            System.out.println("What would you like to do? " + commands.toString());
         }
     }
 
@@ -32,13 +32,11 @@ public class ServerTUI extends Thread {
 
         switch (parts[0]) {
             case "deploy":
-                System.out.println("What should the database be called?");
-                String filename = sc.next();
-                server.getDbHandler().deploy(filename);
+                server.getDbHandler().deploy();
                 break;
             case "add":
                 System.out.println("What should the client's id be?");
-                String id = sc.next();
+                String id = sc.next().split("@")[0];
                 System.out.println("And what should the password be?");
                 String password = sc.next();
                 server.getDbHandler().addNewID(id, server.getHash(password));
@@ -51,9 +49,20 @@ public class ServerTUI extends Thread {
             case "connected":
                 System.out.println("Connected users:\n" + server.getClientHandlers().toString());
                 break;
+            case "users":
+                ArrayList<String> users = server.getDbHandler().getUsers();
+                System.out.println("The list of users:\n" + users.toString());
+                break;
+            case "location":
+                System.out.println("What is the id of the user?");
+                String client_id = sc.next();
+                ArrayList<ArrayList<String>> locations = server.getDbHandler().getLocation(client_id);
+                if (locations != null) {
+                    for (ArrayList<String> location: locations) {
+                        System.out.println("Latitude: " + location.get(0) + "\t\tLongitude: " + location.get(1) + "\t\tTime: " + location.get(2));
+                    }
+                }
+                break;
         }
-
-
     }
-
 }
