@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.Scanner;
 
 public class ServerTUI extends Thread {
-    Scanner sc;
-    List<String> commands = Arrays.asList("deploy", "add", "remove", "connected", "users", "location");
-    Server server;
+    private Scanner sc;
+    private List<String> commands = Arrays.asList("deploy", "add", "remove", "connected", "users", "location");
+    private Server server;
 
-    public ServerTUI(Server server) {
+    ServerTUI(Server server) {
         this.server = server;
         sc = new Scanner(System.in);
     }

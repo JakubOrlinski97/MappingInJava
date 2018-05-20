@@ -1,19 +1,20 @@
 package GPS;
 
-import org.sqlite.JDBC;
 
 import java.sql.*;
 import java.util.ArrayList;
 
 public class TransactionHandler {
-    private final static String DBURL = "jdbc:sqlite:myfirst.db";
+    private final static String DBURL = "jdbc:mysql://localhost:3306/MappingInJava" + "?verifyServerCertificate=false&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC"
+            + "&useSSL=true";
+    private final static String username = "GeoJake";
+    private final static String password = "HP*aeVE@3G69Ta!xB5lfJg2Xh2";
 
 
-    public synchronized Connection connect() {
+    private synchronized Connection connect() {
         Connection conn = null;
         try {
-            DriverManager.registerDriver(new JDBC());
-            conn = DriverManager.getConnection(DBURL);
+            conn = DriverManager.getConnection(DBURL, username, password);
         } catch (SQLException e) {
             System.out.println("DATABASE NOT FOUND");
         }
@@ -24,16 +25,16 @@ public class TransactionHandler {
         String sqlInsert = "INSERT INTO users(client_id, hash, update_time) VALUES(?, ?, ?)";
         String sqlCreate = String.format("CREATE TABLE IF NOT EXISTS %s (\n" +
                 "client_id text, \n" +
-                "latitude double, \n" +
-                "longitude double, \n" +
-                "update_time integer PRIMARY KEY\n" +
+                "latitude text, \n" +
+                "longitude text, \n" +
+                "update_time bigint primary key \n" +
                 ")", ID);
 
         PreparedStatement p1 = null;
         PreparedStatement p2 = null;
         Connection conn = connect();
 
-        System.out.println("Adding new ID!");
+
 
         if (conn == null) {
             System.out.println("No connection to db!");
@@ -45,25 +46,23 @@ public class TransactionHandler {
             p1 = conn.prepareStatement(sqlInsert);
             p1.setString(1, ID);
             p1.setString(2, hash);
-            p1.setString(3, "" + System.currentTimeMillis());
+            p1.setLong(3, System.currentTimeMillis());
 
             p2 = conn.prepareStatement(sqlCreate);
 
+            conn.setAutoCommit(false);
+
             int rowsAffected = p1.executeUpdate();
 
-            if (rowsAffected != 1) {
+            if (rowsAffected == 0) {
                 System.out.println("Didn't succeed!");
                 conn.rollback();
             }
 
-            rowsAffected = p2.executeUpdate();
+            p2.executeUpdate();
 
-            if (rowsAffected != 1) {
-                System.out.println("Didn't succeed!");
-                conn.rollback();
-            }
+            conn.commit();
             System.out.println("User added and personal table created!");
-
         } catch (SQLException e) {
             try {
                 System.out.println(e.getMessage());
@@ -166,7 +165,7 @@ public class TransactionHandler {
             p1.setString(1, clientId);
             p1.setString(2, latitude);
             p1.setString(3, longitude);
-            p1.setString(4, time);
+            p1.setLong(4, Long.parseLong(time));
 
             int rowsAffected = p1.executeUpdate();
             System.out.println("New location added!");
@@ -251,9 +250,9 @@ public class TransactionHandler {
 
     public synchronized void deploy() {
         String sqlTable = "CREATE TABLE IF NOT EXISTS users (\n" +
-                "client_id text PRIMARY KEY, \n" +
+                "client_id varchar(30) PRIMARY KEY , \n" +
                 "hash text, \n" +
-                "update_time text\n" +
+                "update_time bigint\n" +
                 ")";
 
         String sqlDrop = "DROP TABLE IF EXISTS users";
@@ -263,20 +262,17 @@ public class TransactionHandler {
         PreparedStatement p2 = null;
 
         try {
-            DriverManager.registerDriver(new JDBC());
-            conn = DriverManager.getConnection(DBURL);
+            conn = DriverManager.getConnection(DBURL, username, password);
             p1 = conn.prepareStatement(sqlTable);
             p2 = conn.prepareStatement(sqlDrop);
 
-            if (conn != null) {
-                DatabaseMetaData meta = conn.getMetaData();
-                System.out.println("The driver's name is: " + meta.getDriverName());
-                System.out.println("A new database has been created!");
+            DatabaseMetaData meta = conn.getMetaData();
+            System.out.println("The driver's name is: " + meta.getDriverName());
+            System.out.println("A new database has been created!");
 
-                p2.execute();
-                p1.execute();
-                System.out.println("The user table has been created!");
-            }
+            p2.execute();
+            p1.execute();
+            System.out.println("The user table has been created!");
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {

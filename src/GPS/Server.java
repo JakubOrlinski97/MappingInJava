@@ -64,7 +64,7 @@ public class Server {
         }
     }
 
-    public void removeUser(ClientHandler clientHandler) {
+    private void removeUser(ClientHandler clientHandler) {
         clientHandlers.remove(clientHandler);
     }
 
@@ -98,17 +98,17 @@ public class Server {
                     String[] message = input.split(" ");
 
                     handleInput(message);
-
-                    input = in.readLine();
-
+                    if (client.isClosed()) {
+                        return;
+                    } else {
+                        input = in.readLine();
+                    }
                 }
-
             } catch (IOException e) {
                 System.out.println("OOPS a exception got caught");
             }
 
             finally {
-                System.out.println("Shutting down client: " + "...");
                 shutdown();
             }
         }
@@ -133,7 +133,7 @@ public class Server {
                         System.out.println("We good. " + input[1] + " = " + clientId);
                         dbHandler.addNewLocation(input[1], input[2], input[3], input[4]);
                         break;
-                    case "exit":
+                    case "end":
                         shutdown();
                 }
             } catch (IOException e) {
@@ -142,6 +142,7 @@ public class Server {
         }
 
         private void shutdown() {
+            System.out.println("Shutting down client: " + "...");
             try {
                 in.close();
                 out.close();
@@ -161,7 +162,6 @@ public class Server {
 
     public String getHash(String password) {
         String hash = argon2.hash(iterations, memory, threads, password.toCharArray());
-        System.out.println("Hash: " + hash);
         argon2.wipeArray(password.toCharArray());
         return hash;
     }
